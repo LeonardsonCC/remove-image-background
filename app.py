@@ -3,6 +3,7 @@ from rembg.bg import remove
 import numpy as np
 import io
 from PIL import Image
+from base64 import b64decode
 
 input_path = 'input.png'
 output_path = 'out.png'
@@ -28,23 +29,17 @@ def route_index():
 
 @app.route("/remove-background", methods=["POST"])
 def route_remove_background():
-    if 'file' not in request.files:
+    data = request.json
+    if 'image' not in data:
         return jsonify({
             "error": "No file received"
         })
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({
-            "error": "File not found"
-        })
 
-    if file and allowed_file(file.filename):
-        file_bytes = io.BytesIO()
-        file.save(file_bytes)
+    bytesImage = b64decode(data['image'])
 
+    if bytesImage is not None:
         output_file_bytes = io.BytesIO()
-        image = remove_background(file.getvalue())
+        image = remove_background(bytesImage)
         image.save(output_file_bytes, format="PNG")
         return Response(
             output_file_bytes.getvalue(),
