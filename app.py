@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file, Response
 from rembg.bg import remove
 import numpy as np
 import io
@@ -10,12 +10,11 @@ ALLOWED_EXTENSIONS = {'png'}
 
 app = Flask(__name__)
 
-print("Starting")
 def remove_background(stringFile):
     f = np.fromstring(stringFile, dtype=np.uint8)
     result = remove(f)
     img = Image.open(io.BytesIO(result)).convert("RGBA")
-    img.save(output_path)
+    return img
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -43,10 +42,15 @@ def route_remove_background():
     if file and allowed_file(file.filename):
         file_bytes = io.BytesIO()
         file.save(file_bytes)
-        remove_background(file.getvalue())
-        return jsonify({
-            "data": "nice"
-        })
+
+        output_file_bytes = io.BytesIO()
+        image = remove_background(file.getvalue())
+        image.save(output_file_bytes, format="PNG")
+        return Response(
+            output_file_bytes.getvalue(),
+            mimetype="image/png"
+        )
+
 
     return jsonify({
         "test": "nice"
